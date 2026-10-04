@@ -5,57 +5,116 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Download Perfect Fabric Template
+      - name: Generate Perfect Fabric Project Directly
         run: |
-          # 下載官方最新的標準範本並解壓
-          curl -L https://github.com -o template.zip
-          unzip template.zip
-          mv fabric-example-mod-1.21/* .
-          
-          # 清理預設名稱並修改為 fastminecart
-          sed -i 's/"modid"/"fastminecart"/g' src/main/resources/fabric.mod.json
-          sed -i 's/"Example Mod"/"Fast Minecart"/g' src/main/resources/fabric.mod.json
-          sed -i 's/"modid.mixins.json"/"fastminecart.mixins.json"/g' src/main/resources/fabric.mod.json
-          
-          # 重新命名並重寫 mixin json 設定
-          mv src/main/resources/modid.mixins.json src/main/resources/fastminecart.mixins.json
+          # 1. 建立標準的 Fabric 模組專案結構
+          mkdir -p gradle/wrapper
+          mkdir -p src/main/java/com/example/fastminecart/mixin
+          mkdir -p src/main/resources/assets/fastminecart
+
+          # 2. 現場直接寫入最核心的 gradle.properties
+          cat << 'EOF' > gradle.properties
+          minecraft_version=1.21.1
+          yarn_mappings=1.21.1+build.3
+          loader_version=0.16.9
+          fabric_version=0.107.0+1.21.1
+          loom_version=1.9-SNAPSHOT
+          mod_version=1.0.0
+          maven_group=com.example
+          archives_base_name=fastminecart
+          EOF
+
+          # 3. 現場寫入 settings.gradle
+          cat << 'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  maven { url "https://maven.fabricmc.net/" }
+                  mavenCentral()
+              }
+          }
+          plugins {
+              id "net.fabricmc.loom" version "${loom_version}"
+          }
+          EOF
+
+          # 4. 現場寫入 build.gradle 設定檔
+          cat << 'EOF' > build.gradle
+          plugins {
+              id 'fabric-loom' version '1.9-SNAPSHOT'
+          }
+          version = project.mod_version
+          group = project.maven_group
+          base { archivesName = project.archives_base_name }
+          repositories { mavenCentral() }
+          dependencies {
+              minecraft "com.mojang:minecraft:${project.minecraft_version}"
+              mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+              modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+              modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+          }
+          processResources {
+              inputs.property "version", project.version
+              filesMatching("fabric.mod.json") { expand "version": project.version }
+          }
+          tasks.withType(JavaCompile).configureEach { it.options.release = 21 }
+          EOF
+
+          # 5. 寫入 fabric.mod.json
+          cat << 'EOF' > src/main/resources/fabric.mod.json
+          {
+            "schemaVersion": 1,
+            "id": "fastminecart",
+            "version": "1.0.0",
+            "name": "Fast Minecart",
+            "description": "突破礦車速度上限！",
+            "authors": ["AI"],
+            "contact": {},
+            "license": "MIT",
+            "environment": "*",
+            "entrypoints": {},
+            "mixins": ["fastminecart.mixins.json"],
+            "depends": {
+              "fabricloader": ">=0.16.0",
+              "minecraft": "~1.21.1",
+              "java": ">=21"
+            }
+          }
+          EOF
+
+          # 6. 寫入 mixin 的 json 設定檔
           cat << 'EOF' > src/main/resources/fastminecart.mixins.json
           {
             "required": true,
             "package": "com.example.fastminecart.mixin",
             "compatibilityLevel": "JAVA_21",
-            "mixins": [
-              "AbstractMinecartEntityMixin"
-            ],
-            "injectors": {
-              "defaultRequire": 1
-            }
+            "mixins": ["AbstractMinecartEntityMixin"],
+            "injectors": { "defaultRequire": 1 }
           }
           EOF
-          
-          # 清理多餘資料夾，建立正確的 java 結構
-          rm -rf src/main/java/net
-          mkdir -p src/main/java/com/example/fastminecart/mixin
-          
-          # 寫入突破礦車速度上限的核心程式碼
+
+          # 7. 寫入讓礦車飛起來的 Java Mixin 核心代碼
           cat << 'EOF' > src/main/java/com/example/fastminecart/mixin/AbstractMinecartEntityMixin.java
           package com.example.fastminecart.mixin;
-
           import net.minecraft.world.entity.vehicle.AbstractMinecart;
           import org.spongepowered.asm.mixin.Mixin;
           import org.spongepowered.asm.mixin.injection.At;
           import org.spongepowered.asm.mixin.injection.Inject;
           import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
           @Mixin(AbstractMinecart.class)
           public class AbstractMinecartEntityMixin {
               @Inject(method = "getMaxSpeed", at = @At("HEAD"), cancellable = true)
               private void onGetMaxSpeed(CallbackInfoReturnable<Double> cir) {
-                  // 強行覆寫最大速度為每刻 20.0 格（每秒 400 格，比原本快 50 倍！）
-                  cir.setReturnValue(20.0); 
+                  // 強行突破！將礦車極速改為每刻 20.0 格（每秒 400 格，原本只有 8 格）
+                  cir.setReturnValue(20.0);
               }
           }
           EOF
+
+          # 8. 下載乾淨無損的 Gradle 官方打包核心（防止 gradlew 遺失）
+          curl -L https://gradle.org -o gradle.zip
+          unzip gradle.zip
+          mv gradle-8.10.2/bin/gradle gradlew
+          chmod +x gradlew
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -64,9 +123,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Build Mod with Gradle
-        run: |
-          chmod +x gradlew
-          ./gradlew build
+        run: ./gradlew build --no-daemon
 
       - name: Upload Finished Jar Mod
         uses: actions/upload-artifact@v4
