@@ -7,23 +7,22 @@ jobs:
     steps:
       - name: Create Perfect Fabric Project Structures
         run: |
-          # 1. 直接建立完美的專案資料夾結構
           mkdir -p src/main/java/com/example/fastminecart/mixin
           mkdir -p src/main/resources
 
-          # 2. 寫入 gradle.properties
+          # 1. 寫入 gradle.properties（修正 loom_version 為正式版 1.9.2）
           cat << 'EOF' > gradle.properties
           minecraft_version=1.21.1
           yarn_mappings=1.21.1+build.3
           loader_version=0.16.9
           fabric_version=0.107.0+1.21.1
-          loom_version=1.9-SNAPSHOT
+          loom_version=1.9.2
           mod_version=1.0.0
           maven_group=com.example
           archives_base_name=fastminecart
           EOF
 
-          # 3. 寫入 settings.gradle
+          # 2. 寫入 settings.gradle
           cat << 'EOF' > settings.gradle
           pluginManagement {
               repositories {
@@ -36,10 +35,10 @@ jobs:
           }
           EOF
 
-          # 4. 寫入 build.gradle
+          # 3. 寫入 build.gradle
           cat << 'EOF' > build.gradle
           plugins {
-              id 'fabric-loom' version '1.9-SNAPSHOT'
+              id 'fabric-loom' version "${loom_version}"
           }
           version = project.mod_version
           group = project.maven_group
@@ -58,7 +57,7 @@ jobs:
           tasks.withType(JavaCompile).configureEach { it.options.release = 21 }
           EOF
 
-          # 5. 寫入 fabric.mod.json
+          # 4. 寫入 fabric.mod.json
           cat << 'EOF' > src/main/resources/fabric.mod.json
           {
             "schemaVersion": 1,
@@ -80,7 +79,7 @@ jobs:
           }
           EOF
 
-          # 6. 寫入 fastminecart.mixins.json
+          # 5. 寫入 fastminecart.mixins.json
           cat << 'EOF' > src/main/resources/fastminecart.mixins.json
           {
             "required": true,
@@ -91,7 +90,7 @@ jobs:
           }
           EOF
 
-          # 7. 寫入突破礦車速度的 Java 核心程式碼
+          # 6. 寫入突破礦車速度的 Java 核心程式碼
           cat << 'EOF' > src/main/java/com/example/fastminecart/mixin/AbstractMinecartEntityMixin.java
           package com.example.fastminecart.mixin;
           import net.minecraft.world.entity.vehicle.AbstractMinecart;
@@ -103,7 +102,6 @@ jobs:
           public class AbstractMinecartEntityMixin {
               @Inject(method = "getMaxSpeed", at = @At("HEAD"), cancellable = true)
               private void onGetMaxSpeed(CallbackInfoReturnable<Double> cir) {
-                  // 強行覆寫最大速度為 20.0（比原生快 50 倍，每秒 400 格！）
                   cir.setReturnValue(20.0);
               }
           }
@@ -115,7 +113,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Setup Gradle Toolkit (No Zip Download)
+      - name: Setup Gradle Toolkit
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
