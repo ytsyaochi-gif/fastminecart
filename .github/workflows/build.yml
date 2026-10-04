@@ -14,15 +14,25 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Make gradlew executable
-        run: chmod +x "./快遞礦車項目/gradlew"
-        
-      - name: Build with Gradle
-        run: ./gradlew build
-        working-directory: "./快遞礦車項目"
+      - name: Automatically find and Build Mod
+        run: |
+          # 自動尋找包含 gradlew 的完整路徑
+          GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "錯誤：找不到 gradlew 檔案，請確認專案檔案有正確上傳！"
+            exit 1
+          fi
+          
+          GRADLEW_DIR=$(dirname "$GRADLEW_PATH")
+          echo "成功找到開發目錄：$GRADLEW_DIR"
+          
+          # 給予執行權限並進行打包
+          chmod +x "$GRADLEW_PATH"
+          cd "$GRADLEW_DIR"
+          ./gradlew build
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: FastMinecart-Mod
-          path: "./快遞礦車項目/build/libs/*.jar"
+          path: "**/build/libs/*.jar"
