@@ -15,14 +15,14 @@ jobs:
           distribution: 'temurin'
 
       - name: Make gradlew executable
-        run: chmod +x ./FastMinecart_Project/gradlew
+        run: chmod +x "./快遞礦車項目/gradlew"
         
       - name: Build with Gradle
-        run: ./FastMinecart_Project/gradlew build
-        working-directory: ./FastMinecart_Project
+        run: ./gradlew build
+        working-directory: "./快遞礦車項目"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: FastMinecart-Mod
-          path: ./FastMinecart_Project/build/libs/*.jar
+          path: "./快遞礦車項目/build/libs/*.jar"
