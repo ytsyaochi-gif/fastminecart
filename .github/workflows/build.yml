@@ -22,12 +22,12 @@ jobs:
           archives_base_name=fastminecart
           EOF
 
-          # 2. 寫入修正版的 settings.gradle（將倉庫完美注入 pluginManagement 頂層）
+          # 2. 寫入傳統標準無等號語法的 settings.gradle
           cat << 'EOF' > settings.gradle
           pluginManagement {
               repositories {
-                  maven { url = "https://maven.fabricmc.net/" }
-                  maven { url = "https://apache.org" }
+                  maven { url "https://maven.fabricmc.net/" }
+                  maven { url "https://apache.org" }
                   mavenCentral()
               }
           }
@@ -103,7 +103,6 @@ jobs:
           public class AbstractMinecartEntityMixin {
               @Inject(method = "getMaxSpeed", at = @At("HEAD"), cancellable = true)
               private void onGetMaxSpeed(CallbackInfoReturnable<Double> cir) {
-                  // 強行覆寫為 20.0，在遊戲裡這就是一秒 400 格的瘋狂速度！
                   cir.setReturnValue(20.0);
               }
           }
