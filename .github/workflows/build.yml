@@ -5,51 +5,42 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Create Perfect Fabric Project Structures
+      - name: Generate Perfect Project Files
         run: |
+          # 建立原始碼與設定檔專用資料夾
           mkdir -p src/main/java/com/example/fastminecart/mixin
           mkdir -p src/main/resources
 
-          # 1. 寫入 gradle.properties
-          cat << 'EOF' > gradle.properties
-          minecraft_version=1.21.1
-          yarn_mappings=1.21.1+build.3
-          loader_version=0.16.9
-          fabric_version=0.107.0+1.21.1
-          loom_version=1.9.2
-          mod_version=1.0.0
-          maven_group=com.example
-          archives_base_name=fastminecart
-          EOF
-
-          # 2. 寫入傳統標準無等號語法的 settings.gradle
+          # 1. 現場直接寫出獨立的 settings.gradle 檔案
           cat << 'EOF' > settings.gradle
           pluginManagement {
               repositories {
                   maven { url "https://maven.fabricmc.net/" }
-                  maven { url "https://apache.org" }
+                  maven { url "https://gradle.org" }
                   mavenCentral()
               }
           }
           plugins {
-              id "net.fabricmc.loom" version "${loom_version}"
+              id "net.fabricmc.loom" version "1.9.2"
           }
           EOF
 
-          # 3. 寫入 build.gradle
+          # 2. 現場直接寫出獨立的 build.gradle 檔案
           cat << 'EOF' > build.gradle
           plugins {
-              id 'fabric-loom' version "${loom_version}"
+              id 'fabric-loom'
           }
-          version = project.mod_version
-          group = project.maven_group
-          base { archivesName = project.archives_base_name }
-          repositories { mavenCentral() }
+          version = "1.0.0"
+          group = "com.example"
+          base { archivesName = "fastminecart" }
+          repositories { 
+              mavenCentral() 
+          }
           dependencies {
-              minecraft "com.mojang:minecraft:${project.minecraft_version}"
-              mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-              modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-              modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+              minecraft "com.mojang:minecraft:1.21.1"
+              mappings "net.fabricmc:yarn:1.21.1+build.3:v2"
+              modImplementation "net.fabricmc:fabric-loader:0.16.9"
+              modImplementation "net.fabricmc.fabric-api:fabric-api:0.107.0+1.21.1"
           }
           processResources {
               inputs.property "version", project.version
@@ -58,7 +49,7 @@ jobs:
           tasks.withType(JavaCompile).configureEach { it.options.release = 21 }
           EOF
 
-          # 4. 寫入 fabric.mod.json
+          # 3. 現場寫入 fabric.mod.json
           cat << 'EOF' > src/main/resources/fabric.mod.json
           {
             "schemaVersion": 1,
@@ -80,7 +71,7 @@ jobs:
           }
           EOF
 
-          # 5. 寫入 fastminecart.mixins.json
+          # 4. 現場寫入 fastminecart.mixins.json
           cat << 'EOF' > src/main/resources/fastminecart.mixins.json
           {
             "required": true,
@@ -91,7 +82,7 @@ jobs:
           }
           EOF
 
-          # 6. 寫入突破礦車速度的 Java 核心程式碼
+          # 5. 現場寫入突破礦車速度的 Java 核心程式碼
           cat << 'EOF' > src/main/java/com/example/fastminecart/mixin/AbstractMinecartEntityMixin.java
           package com.example.fastminecart.mixin;
           import net.minecraft.world.entity.vehicle.AbstractMinecart;
@@ -103,6 +94,7 @@ jobs:
           public class AbstractMinecartEntityMixin {
               @Inject(method = "getMaxSpeed", at = @At("HEAD"), cancellable = true)
               private void onGetMaxSpeed(CallbackInfoReturnable<Double> cir) {
+                  // 強行覆寫為 20.0（每秒 400 格的瘋狂速度）
                   cir.setReturnValue(20.0);
               }
           }
